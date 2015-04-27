@@ -2,4 +2,4 @@
 /vendor
 /*.cache
 /scripts
-/vagrant
+/tests/vagrant/.vagrant

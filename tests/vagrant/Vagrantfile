@@ -1,0 +1,36 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+    config.vm.box = "chef/debian-7.4"
+	config.vm.provision :shell, path: "bootstrap.sh"
+
+    config.vm.define "redis1" do |redis|
+        config.vm.network "forwarded_port", guest: 6379, host: 6379, auto_correct: true
+        config.vm.network "private_network", ip: "192.168.33.11"
+    end
+
+    config.vm.define "redis2" do |redis|
+        config.vm.network "forwarded_port", guest: 6379, host: 6380, auto_correct: true
+        config.vm.network "private_network", ip: "192.168.33.12"
+    end
+
+    config.vm.define "redis3" do |redis|
+        config.vm.network "forwarded_port", guest: 6379, host: 6381, auto_correct: true
+        config.vm.network "private_network", ip: "192.168.33.13"
+    end
+
+    config.vm.define "redis4" do |redis|
+        config.vm.network "forwarded_port", guest: 6379, host: 6382, auto_correct: true
+        config.vm.network "private_network", ip: "192.168.33.14"
+    end
+
+    config.vm.define "redis5" do |redis|
+        config.vm.network "forwarded_port", guest: 6379, host: 6383, auto_correct: true
+        config.vm.network "private_network", ip: "192.168.33.15"
+    end
+end
