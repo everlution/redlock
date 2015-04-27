@@ -4,6 +4,8 @@ An implementation of the [Redlock] [1] algorithm.
 
 **WARNING** this package is still on development.
 
+It is worth it to take a look at the wikipedia page for [distributed locking] [2].
+
 ## Requirements
 
 * PHP >= 5.4
@@ -13,15 +15,16 @@ An implementation of the [Redlock] [1] algorithm.
 
 This library is provided with two different adapters:
 
-* [Predis] [2]
-* [PHP Redis extension] [3]
+* [Predis] [3]
+* [PHP Redis extension] [4]
 
 ## Contributors
 
-* [Michael Caldera] [4]
+* [Michael Caldera] [5]
 
 
 [1]: http://redis.io/topics/distlock
-[2]: https://github.com/nrk/predis
-[3]: https://github.com/phpredis/phpredis
-[4]: https://github.com/michcald
+[2]: http://en.wikipedia.org/wiki/Distributed_lock_manager
+[3]: https://github.com/nrk/predis
+[4]: https://github.com/phpredis/phpredis
+[5]: https://github.com/michcald
