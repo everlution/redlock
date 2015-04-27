@@ -1,0 +1,32 @@
+{
+    "name": "everlution/redlock",
+    "description": "An implementation of the Redlock algorithm",
+    "license": "Apache-2.0",
+    "keywords": ["redlock", "distributed locks"],
+    "authors": [
+        {
+            "name": "Michael Caldera",
+            "email": "michcald@gmail.com",
+            "homepage": "http://michaelcaldera.net",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/everlution/redlock/issues"
+    },
+    "require": {
+        "php": ">=5.4",
+        "predis/predis": "1.0.*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "4.*",
+        "squizlabs/php_codesniffer": "2.*",
+        "fabpot/php-cs-fixer": "2.0.*@dev",
+        "symfony/var-dumper": "2.6.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Everlution\\Redlock\\": "src/"
+        }
+    }
+}
