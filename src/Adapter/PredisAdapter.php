@@ -13,6 +13,18 @@ class PredisAdapter implements AdapterInterface
         $this->predis = $predis;
     }
 
+    public function isConnected()
+    {
+        try {
+            /* @var $status \Predis\Response\Status */
+            $status = $this->predis->ping();
+
+            return $status->getPayload() == 'PONG';
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
     public function del($key)
     {
         return $this
@@ -47,10 +59,13 @@ class PredisAdapter implements AdapterInterface
 
     public function set($key, $value)
     {
-        return $this
+        $status = $this
             ->predis
             ->set($key, $value)
         ;
+
+        /* @var $status \Predis\Response\Status */
+        return $status->getPayload() == 'OK';
     }
 
     public function setTTL($key, $ttl)

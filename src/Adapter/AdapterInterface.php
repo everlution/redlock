@@ -4,6 +4,8 @@ namespace Everlution\Redlock\Adapter;
 
 interface AdapterInterface
 {
+    public function isConnected();
+
     public function set($key, $value);
 
     public function del($key);

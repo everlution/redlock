@@ -3,7 +3,7 @@
 use Everlution\Redlock\Adapter\PredisAdapter;
 
 /**
- * Integration test with Predis
+ * Integration test with Predis.
  */
 class PredisAdapterTest extends \PHPUnit_Framework_TestCase
 {
@@ -12,34 +12,17 @@ class PredisAdapterTest extends \PHPUnit_Framework_TestCase
      */
     protected $adapter;
 
-    const PREFIX = 'test:';
-
     public function setUp()
     {
         parent::setUp();
-        $predis = new \Predis\Client('tcp://127.0.0.1:6379', array('prefix'=> self::PREFIX));
+        $predis = new \Predis\Client('tcp://127.0.0.1:6379');
         $this->adapter = new PredisAdapter($predis);
-    }
-
-    /**
-     * translateKey.
-     *
-     * Predis does not strip off the prefix
-     *
-     * @param string $key
-     * @return string
-     */
-    private function translateKey($key)
-    {
-        return str_replace(self::PREFIX, '', $key);
     }
 
     public function clearAll()
     {
         foreach ($this->adapter->keys() as $key) {
-            $this->adapter->del(
-                $this->translateKey($key)
-            );
+            $this->adapter->del($key);
         }
     }
 
@@ -54,9 +37,14 @@ class PredisAdapterTest extends \PHPUnit_Framework_TestCase
         $this->assertInternalType('array', $keys);
         $this->assertCount(0, $keys);
 
-        $this
+        $result = $this
             ->adapter
             ->set('resourceA', 'valueA')
+        ;
+
+        $keys = $this
+            ->adapter
+            ->keys()
         ;
 
         $resourceA = $this
@@ -72,7 +60,7 @@ class PredisAdapterTest extends \PHPUnit_Framework_TestCase
         ;
         $this->assertInternalType('array', $keys);
         $this->assertCount(1, $keys);
-        $this->assertContains(self::PREFIX . 'resourceA', $keys);
+        $this->assertContains('resourceA', $keys);
     }
 
     public function testTTL()
@@ -105,10 +93,10 @@ class PredisAdapterTest extends \PHPUnit_Framework_TestCase
     {
         $this->clearAll();
 
-        for ($i=0; $i<50; $i++) {
+        for ($i = 0; $i < 50; $i++) {
             $this
                 ->adapter
-                ->set('resource' . $i, 'value' . $i)
+                ->set('resource'.$i, 'value'.$i)
             ;
         }
 
@@ -131,5 +119,11 @@ class PredisAdapterTest extends \PHPUnit_Framework_TestCase
             11,
             $this->adapter->keys('resource1*')
         );
+    }
+
+    public function tearDown()
+    {
+        parent::tearDown();
+        $this->clearAll();
     }
 }
