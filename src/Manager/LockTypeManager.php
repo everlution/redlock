@@ -32,7 +32,9 @@ class LockTypeManager
      * Returns the allowed concurrent locks depending by the lock type.
      *
      * @param string $type
+     *
      * @return array[string]
+     *
      * @throws \Everlution\Redlock\Exception\InvalidLockTypeException
      */
     public function getConcurrentAllowedLocks($type)

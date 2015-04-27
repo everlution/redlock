@@ -15,4 +15,23 @@ class DefaultKeyGenerator implements KeyGeneratorInterface
             $lock->getToken()
         );
     }
+
+    public function ungenerate($key, LockInterface $lock)
+    {
+        $chunks = explode(':', $key);
+
+        if (isset($key[0])) {
+            $lock->setResourceName($chunks[0]);
+        }
+
+        if (isset($key[1])) {
+            $lock->setType($chunks[1]);
+        }
+
+        if (isset($key[2])) {
+            $lock->setToken($chunks[2]);
+        }
+
+        return $lock;
+    }
 }
