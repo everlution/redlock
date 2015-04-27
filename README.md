@@ -1,8 +1,8 @@
 # Redlock
 
-An implementation of the [Redlock] [1] algorithm.
-
 **WARNING** this package is still on development.
+
+An implementation of the [Redlock] [1] algorithm.
 
 It is worth it to take a look at the wikipedia page for [distributed locking] [2].
 
