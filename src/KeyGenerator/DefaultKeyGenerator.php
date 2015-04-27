@@ -4,7 +4,7 @@ namespace Everlution\Redlock\KeyGenerator;
 
 use Everlution\Redlock\Model\LockInterface;
 
-class DefaultKeyGenerator
+class DefaultKeyGenerator implements KeyGeneratorInterface
 {
     public function generate(LockInterface $lock)
     {

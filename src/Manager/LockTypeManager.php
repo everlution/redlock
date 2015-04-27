@@ -7,6 +7,13 @@ use Everlution\Redlock\Exception\InvalidLockTypeException;
 
 class LockTypeManager
 {
+    /**
+     * getAll.
+     *
+     * Returns all the available lock types.
+     *
+     * @return array[string]
+     */
     public function getAll()
     {
         return array(
@@ -19,6 +26,15 @@ class LockTypeManager
         );
     }
 
+    /**
+     * getConcurrentAllowedLocks.
+     *
+     * Returns the allowed concurrent locks depending by the lock type.
+     *
+     * @param string $type
+     * @return array[string]
+     * @throws \Everlution\Redlock\Exception\InvalidLockTypeException
+     */
     public function getConcurrentAllowedLocks($type)
     {
         switch ($type) {
