@@ -27,6 +27,7 @@ class PredisAdapterTest extends \PHPUnit_Framework_TestCase
                 'host'    => $config['adapter']['predis']['valid_redis']['host'],
                 'port'    => $config['adapter']['predis']['valid_redis']['port'],
                 'timeout' => $config['adapter']['predis']['valid_redis']['timeout'],
+                'async'   => $config['adapter']['predis']['valid_redis']['async'],
             )
         ));
 
@@ -35,13 +36,14 @@ class PredisAdapterTest extends \PHPUnit_Framework_TestCase
                 'host'    => $config['adapter']['predis']['invalid_redis']['host'],
                 'port'    => $config['adapter']['predis']['invalid_redis']['port'],
                 'timeout' => $config['adapter']['predis']['invalid_redis']['timeout'],
+                'async'   => $config['adapter']['predis']['invalid_redis']['async'],
             ))
         );
     }
 
     public function clearAll()
     {
-        foreach ($this->adapter->keys() as $key) {
+        foreach ($this->adapter->keys('*') as $key) {
             $this->adapter->del($key);
         }
     }
@@ -52,7 +54,7 @@ class PredisAdapterTest extends \PHPUnit_Framework_TestCase
 
         $keys = $this
             ->adapter
-            ->keys()
+            ->keys('*')
         ;
         $this->assertInternalType('array', $keys);
         $this->assertCount(0, $keys);
@@ -64,7 +66,7 @@ class PredisAdapterTest extends \PHPUnit_Framework_TestCase
 
         $keys = $this
             ->adapter
-            ->keys()
+            ->keys('*')
         ;
 
         $resourceA = $this
@@ -76,7 +78,7 @@ class PredisAdapterTest extends \PHPUnit_Framework_TestCase
 
         $keys = $this
             ->adapter
-            ->keys()
+            ->keys('*')
         ;
         $this->assertInternalType('array', $keys);
         $this->assertCount(1, $keys);

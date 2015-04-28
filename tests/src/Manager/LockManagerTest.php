@@ -24,7 +24,7 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
         $this->invalidAdapters = $config['manager']['lock']['invalid_redis_servers'];
     }
 
-    public function testConnectedAdapters()
+    public function testGetAdapters()
     {
         // "n" valid
         $manager = $this->newManager(count($this->validAdapters), 0);
@@ -35,11 +35,6 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
         $manager = $this->newManager(count($this->validAdapters) - 1, 1);
         $this->assertCount(count($this->validAdapters), $manager->getAdapters(false));
         $this->assertCount(count($this->validAdapters) - 1, $manager->getAdapters(true));
-
-        // "n" - 2 valid
-        $manager = $this->newManager(count($this->validAdapters) - 2, 2);
-        $this->assertCount(count($this->validAdapters), $manager->getAdapters(false));
-        $this->assertCount(count($this->validAdapters) - 2, $manager->getAdapters(true));
 
         // "n" - "n" valid = all invalid
         $manager = $this->newManager(0, count($this->invalidAdapters));
@@ -57,7 +52,7 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
         // all servers have the lock
         $manager1 = $this->newManager(count($this->validAdapters));
 
-        $lock1 = $this->newLock('printer', LockType::EXCLUSIVE, 'dbowdg2879dg2p98dhe');
+        $lock1 = new Lock('printer', LockType::EXCLUSIVE, 'dbowdg2879dg2p98dhe');
         $this->assertTrue($manager1->acquireLock($lock1));
         $this->assertEquals(
             count($this->validAdapters),
@@ -67,7 +62,7 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
         // one server is down
         $manager2 = $this->newManager(count($this->validAdapters) - 1, 1);
 
-        $lock2 = $this->newLock('printer', LockType::NULL, 'dn87020w80df8gsad');
+        $lock2 = new Lock('printer', LockType::NULL, 'dn87020w80df8gsad');
         $this->assertTrue($manager2->acquireLock($lock2));
         $this->assertEquals(
             count($this->validAdapters) - 1,
@@ -77,7 +72,7 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
         // no servers available
         $manager3 = $this->newManager(0);
 
-        $lock3 = $this->newLock('printer', LockType::PROTECTED_READ, 'n028hd029dh');
+        $lock3 = new Lock('printer', LockType::PROTECTED_READ, 'n028hd029dh');
         $this->assertFalse($manager3->acquireLock($lock3));
         $this->assertEquals(
             0,
@@ -87,7 +82,7 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
         // 2 servers down
         $manager4 = $this->newManager(count($this->validAdapters), count($this->invalidAdapters));
 
-        $lock4 = $this->newLock('printer', LockType::NULL, 'dn87020w80df8gsad');
+        $lock4 = new Lock('printer', LockType::NULL, 'dn87020w80df8gsad');
         $this->assertTrue($manager4->acquireLock($lock4));
         $this->assertEquals(
             count($this->validAdapters),
@@ -99,13 +94,13 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
     {
         $manager = $this->newManager(count($this->validAdapters), count($this->invalidAdapters));
 
-        $lock = $this->newLock('printer', LockType::NULL, 'dn87020w80df8gsad');
+        $lock = new Lock('printer', LockType::NULL, 'dn87020w80df8gsad');
         $this->assertTrue($manager->acquireLock($lock));
 
-        $lock = $this->newLock('printer', LockType::PROTECTED_READ, 'dn87020w80df8gsad');
+        $lock = new Lock('printer', LockType::PROTECTED_READ, 'dn87020w80df8gsad');
         $this->assertTrue($manager->acquireLock($lock));
 
-        $lock = $this->newLock('printer', LockType::CONCURRENT_READ, 'dn87020w80df8gsad');
+        $lock = new Lock('printer', LockType::CONCURRENT_READ, 'dn87020w80df8gsad');
         $this->assertTrue($manager->acquireLock($lock));
 
         $hits = $manager->getKeysHits($manager->generateKey($lock));
@@ -122,13 +117,13 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
     {
         $manager = $this->newManager(count($this->validAdapters), count($this->invalidAdapters));
 
-        $lock1 = $this->newLock('printer', LockType::NULL, 'dn87020w80df8gsad');
+        $lock1 = new Lock('printer', LockType::NULL, 'dn87020w80df8gsad');
         $this->assertTrue($manager->acquireLock($lock1));
 
-        $lock2 = $this->newLock('printer', LockType::PROTECTED_READ, 'dn87020w80df8gsad');
+        $lock2 = new Lock('printer', LockType::PROTECTED_READ, 'dn87020w80df8gsad');
         $this->assertTrue($manager->acquireLock($lock2));
 
-        $lock3 = $this->newLock('printer', LockType::CONCURRENT_READ, 'dn87020w80df8gsad');
+        $lock3 = new Lock('printer', LockType::CONCURRENT_READ, 'dn87020w80df8gsad');
         $this->assertTrue($manager->acquireLock($lock3));
 
         $locks = $manager->getCurrentLocks();
@@ -138,9 +133,9 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
 
             if ($lock->getType() == LockType::NULL) {
                 $this->assertEquals($lock, $lock1);
-            } else if ($lock->getType() == LockType::PROTECTED_READ) {
+            } elseif ($lock->getType() == LockType::PROTECTED_READ) {
                 $this->assertEquals($lock, $lock2);
-            } else if ($lock->getType() == LockType::CONCURRENT_READ) {
+            } elseif ($lock->getType() == LockType::CONCURRENT_READ) {
                 $this->assertEquals($lock, $lock3);
             } else {
                 $this->assertEquals(1, 0); // never
@@ -154,7 +149,7 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
 
         $this->assertCount(0, $manager->getCurrentLocks());
 
-        $lock = $this->newLock('ResourceA', LockType::EXCLUSIVE, 'aksbd8bdge2qod7g');
+        $lock = new Lock('ResourceA', LockType::EXCLUSIVE, 'aksbd8bdge2qod7g');
         $this->assertFalse($manager->hasLock($lock));
         $this->assertTrue($manager->canAcquireLock($lock));
     }
@@ -166,10 +161,10 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
         $token1 = 'asidub2798dgdeefddsf';
         $token2 = 'vophyouasbdyasdoausd';
 
-        $nlLock = $this->newLock('printer', LockType::NULL, $token1);
-        $cwLock = $this->newLock('printer', LockType::CONCURRENT_WRITE, $token1);
-        $exLock = $this->newLock('printer', LockType::EXCLUSIVE, $token2);
-        $crLock = $this->newLock('printer', LockType::CONCURRENT_READ, $token1);
+        $nlLock = new Lock('printer', LockType::NULL, $token1);
+        $cwLock = new Lock('printer', LockType::CONCURRENT_WRITE, $token1);
+        $exLock = new Lock('printer', LockType::EXCLUSIVE, $token2);
+        $crLock = new Lock('printer', LockType::CONCURRENT_READ, $token1);
 
         $this->assertFalse($manager->hasLock($nlLock));
         $this->assertTrue($manager->acquireLock($nlLock));
@@ -212,39 +207,60 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
     {
         $manager = $this->newManager(count($this->validAdapters));
 
-        $lock = $this->newLock('doc', LockType::NULL, 'd92hd982hd8dhw');
+        $lock = new Lock('doc', LockType::NULL, 'd92hd982hd8dhw');
         $this->assertTrue($manager->acquireLock($lock));
 
-        $lock = $this->newLock('doc', LockType::CONCURRENT_WRITE, 'noi987ghf28vd');
+        $lock = new Lock('doc', LockType::CONCURRENT_WRITE, 'noi987ghf28vd');
         $this->assertTrue($manager->acquireLock($lock));
     }
 
-    // helpers
-
-    private function clearAll(LockManager $manager)
+    public function testLockExpired()
     {
-        foreach ($manager->getCurrentLocks() as $lock) {
-            $manager->releaseLock($lock);
-        }
+        $manager = $this->newManager(count($this->validAdapters));
+
+        $lock1 = new Lock('doc', LockType::EXCLUSIVE, 'd92hd982hd8dhw', 10); // 10 secs validity
+        $lock2 = new Lock('doc', LockType::PROTECTED_WRITE, 'c872e6gdgsdg', 60);
+
+        $this->assertTrue($manager->acquireLock($lock1));
+        $this->assertTrue($manager->hasLock($lock1));
+
+        sleep(5);
+        $this->assertTrue($manager->hasLock($lock1));
+        $this->assertFalse($manager->acquireLock($lock2));
+
+        sleep(2);
+        $this->assertTrue($manager->hasLock($lock1));
+        $this->assertFalse($manager->acquireLock($lock2));
+
+        sleep(4);
+        $this->assertFalse($manager->hasLock($lock1));
+        $this->assertTrue($manager->acquireLock($lock2));
+
+        $this->assertFalse($manager->acquireLock($lock1));
+        $this->assertFalse($manager->hasLock($lock1));
     }
 
-    private function newLock($resourceName = null, $type = null, $token = null)
+    public function testLockExtend()
     {
-        $lock = new Lock();
+        $manager = $this->newManager(count($this->validAdapters));
 
-        if ($resourceName) {
-            $lock->setResourceName($resourceName);
-        }
+        $lock1 = new Lock('doc', LockType::EXCLUSIVE, 'd92hd982hd8dhw', 7); // 7 secs validity
 
-        if ($type) {
-            $lock->setType($type);
-        }
+        $this->assertTrue($manager->acquireLock($lock1));
+        $this->assertTrue($manager->hasLock($lock1));
 
-        if ($token) {
-            $lock->setToken($token);
-        }
+        sleep(5); // after ~5 secs
 
-        return $lock;
+        // the lock was initially supposed to expire after ~7 secs
+
+        $lock1->setValidityTime(7);
+        $this->assertTrue($manager->acquireLock($lock1)); // overrides the validity time
+
+        sleep(3); // after ~8 secs (~3 secs from the reset)
+        $this->assertTrue($manager->hasLock($lock1));
+
+        sleep(5); // after ~13 secs (~8 secs from the reset)
+        $this->assertFalse($manager->hasLock($lock1));
     }
 
     /**
@@ -255,6 +271,7 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
      * @param int $ttl
      * @param int $retries
      * @param int $retryMaxDelay
+     *
      * @return LockManager
      */
     private function newManager($validAdaptersCount = 1, $invalidAdaptersCount = 0, $ttl = 60, $retries = 3, $retryMaxDelay = 1)
@@ -286,6 +303,7 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
                             'host'    => $value['host'],
                             'port'    => $value['port'],
                             'timeout' => $value['timeout'],
+                            'async'   => $value['async'],
                         ))
                     )
                 )
@@ -316,7 +334,7 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
             ;
         }
 
-        $this->clearAll($manager); // removing all the keys
+        $manager->releaseAllLocks();
 
         return $manager;
     }
