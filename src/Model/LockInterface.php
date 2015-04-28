@@ -15,4 +15,8 @@ interface LockInterface
     public function setToken($token);
 
     public function getToken();
+
+    public function setValidityTime($validityTime);
+
+    public function getValidityTime();
 }

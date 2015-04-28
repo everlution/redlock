@@ -18,5 +18,5 @@ interface AdapterInterface
 
     public function exists($key);
 
-    public function keys($pattern = '*');
+    public function keys($pattern);
 }

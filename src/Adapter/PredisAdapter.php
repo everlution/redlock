@@ -49,7 +49,7 @@ class PredisAdapter implements AdapterInterface
         ;
     }
 
-    public function keys($pattern = '*')
+    public function keys($pattern)
     {
         return $this
             ->predis
