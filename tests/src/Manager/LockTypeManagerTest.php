@@ -162,7 +162,7 @@ class LockTypeManagerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException Everlution\Redlock\Exception\InvalidLockTypeException
-     * @expectedExceptionMessageRegExp #Invalid lock <.*>#
+     * @expectedExceptionMessageRegExp #Invalid lock type <.*>#
      */
     public function testInvalidLock()
     {

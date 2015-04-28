@@ -7,6 +7,7 @@ use Everlution\Redlock\KeyGenerator\KeyGeneratorInterface;
 use Everlution\Redlock\Model\LockInterface;
 use Everlution\Redlock\Model\Lock;
 use Everlution\Redlock\Adapter\AdapterInterface;
+use Everlution\Redlock\Exception\InvalidLockTypeException;
 
 class LockManager
 {
@@ -186,11 +187,17 @@ class LockManager
      * @param LockInterface $lock
      *
      * @return bool
+     *
+     * @throws InvalidLockTypeException
      */
     public function canAcquireLock(LockInterface $lock)
     {
         if ($this->hasLock($lock)) {
             return true;
+        }
+
+        if (!in_array($lock->getType(), $this->lockTypeManager->getAll())) {
+            throw new InvalidLockTypeException($lock->getType());
         }
 
         /* @var $currentLock \Everlution\Redlock\Model\Lock */

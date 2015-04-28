@@ -264,6 +264,19 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @expectedException Everlution\Redlock\Exception\InvalidLockTypeException
+     * @expectedExceptionMessageRegExp #Invalid lock type <thisIsAnInvalidLockType>#
+     */
+    public function testInvalidLockType()
+    {
+        $manager = $this->newManager(count($this->validAdapters));
+
+        $lock = new Lock('resource1', 'thisIsAnInvalidLockType', 'askdhvasd');
+
+        $manager->acquireLock($lock);
+    }
+
+    /**
      * newManager.
      *
      * @param int $validAdaptersCount
