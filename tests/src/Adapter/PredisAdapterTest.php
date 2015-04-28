@@ -1,5 +1,6 @@
 <?php
 
+use Symfony\Component\Yaml\Yaml;
 use Everlution\Redlock\Adapter\PredisAdapter;
 
 /**
@@ -12,11 +13,30 @@ class PredisAdapterTest extends \PHPUnit_Framework_TestCase
      */
     protected $adapter;
 
+    /**
+     * @var \Everlution\Redlock\Adapter\AdapterInterface
+     */
+    protected $invalidAdapter;
+
     public function setUp()
     {
         parent::setUp();
-        $predis = new \Predis\Client('tcp://127.0.0.1:6379');
-        $this->adapter = new PredisAdapter($predis);
+        $config = Yaml::parse(file_get_contents(CONFIG_YAML));
+        $this->adapter = new PredisAdapter(
+            new \Predis\Client(array(
+                'host'    => $config['adapter']['predis']['valid_redis']['host'],
+                'port'    => $config['adapter']['predis']['valid_redis']['port'],
+                'timeout' => $config['adapter']['predis']['valid_redis']['timeout'],
+            )
+        ));
+
+        $this->invalidAdapter = new PredisAdapter(
+            new \Predis\Client(array(
+                'host'    => $config['adapter']['predis']['invalid_redis']['host'],
+                'port'    => $config['adapter']['predis']['invalid_redis']['port'],
+                'timeout' => $config['adapter']['predis']['invalid_redis']['timeout'],
+            ))
+        );
     }
 
     public function clearAll()
@@ -61,6 +81,11 @@ class PredisAdapterTest extends \PHPUnit_Framework_TestCase
         $this->assertInternalType('array', $keys);
         $this->assertCount(1, $keys);
         $this->assertContains('resourceA', $keys);
+    }
+
+    public function testInvalidServer()
+    {
+        $this->assertFalse($this->invalidAdapter->isConnected());
     }
 
     public function testTTL()

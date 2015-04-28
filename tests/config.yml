@@ -1,0 +1,46 @@
+adapter:
+    predis:
+        valid_redis:
+            host:    127.0.0.1
+            port:    6379
+            timeout: 1
+        invalid_redis:
+            host:    127.0.0.1
+            port:    6384
+            timeout: 1
+manager:
+    lock:
+        valid_redis_servers: # at least 1
+            redis1:
+                host:    127.0.0.1
+                port:    6379
+                timeout: 0
+            redis2:
+                host:    127.0.0.1
+                port:    6380
+                timeout: 0
+            redis3:
+                host:    127.0.0.1
+                port:    6381
+                timeout: 0
+            redis4:
+                host:    127.0.0.1
+                port:    6382
+                timeout: 0
+            redis5:
+                host:    127.0.0.1
+                port:    6383
+                timeout: 0
+        invalid_redis_servers: # at least 2
+            invalidRedis1:
+                host:    127.0.0.1
+                port:    6384
+                timeout: 0
+            invalidRedis2:
+                host:    127.0.0.1
+                port:    6385
+                timeout: 0
+            invalidRedis3:
+                host:    127.0.0.1
+                port:    6386
+                timeout: 0

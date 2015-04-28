@@ -6,6 +6,7 @@ use Everlution\Redlock\Quorum\QuorumInterface;
 use Everlution\Redlock\KeyGenerator\KeyGeneratorInterface;
 use Everlution\Redlock\Model\LockInterface;
 use Everlution\Redlock\Model\Lock;
+use Everlution\Redlock\Adapter\AdapterInterface;
 
 class LockManager
 {
@@ -47,7 +48,6 @@ class LockManager
     private $retryMaxDelay;
 
     public function __construct(
-        array $adapters,
         QuorumInterface $quorum,
         KeyGeneratorInterface $keyGenerator,
         LockTypeManager $lockTypeManager,
@@ -55,13 +55,43 @@ class LockManager
         $retryCount,
         $retryMaxDelay
     ) {
-        $this->adapters         = $adapters;
+        $this->adapters         = array();
         $this->quorum           = $quorum;
         $this->keyGenerator     = $keyGenerator;
         $this->lockTypeManager  = $lockTypeManager;
         $this->ttl              = (int) $ttl;
         $this->retryCount       = (int) $retryCount;
         $this->retryMaxDelay    = (int) $retryMaxDelay;
+    }
+
+    public function addAdapter(AdapterInterface $adapter)
+    {
+        $this->adapters[] = $adapter;
+
+        return $this;
+    }
+
+    public function getAdapters($connected = true)
+    {
+        if (!$connected) {
+            return $this->adapters;
+        }
+
+        $adapters = array();
+        foreach ($this->adapters as $adapter) {
+            if ($adapter->isConnected()) {
+                $adapters[] = $adapter;
+            }
+        }
+        return $adapters;
+    }
+
+    public function generateKey(Lock $lock)
+    {
+        return $this
+            ->keyGenerator
+            ->generate($lock)
+        ;
     }
 
     /**
@@ -73,32 +103,46 @@ class LockManager
      */
     public function getCurrentLocks()
     {
+        $keysHits = $this->getKeysHits();
+
         $locks = array();
+        foreach ($keysHits as $key => $hits) {
+            if ($this->quorum->isApproved($hits)) {
+                $locks[] = $this
+                    ->keyGenerator
+                    ->ungenerate($key, new Lock())
+                ;
+            }
+        }
+        return $locks;
+    }
+
+    public function getKeysHits()
+    {
+        $result = array();
         foreach ($this->adapters as $adapter) {
             if (!$adapter->isConnected()) {
                 continue;
             }
-            foreach ($adapter->keys() as $k) {
-                if (isset($locks[$k])) {
-                    $locks[$k]['count']++;
-                } else {
-                    $locks[$k] = array(
-                        'lock' => $this->keyGenerator->ungenerate($k, new Lock()),
-                        'count' => 0,
-                    );
+            foreach ($adapter->keys() as $key) {
+                $result[$key] = $this->countKeyHits($key);
+            }
+        }
+        return $result;
+    }
+
+    public function countKeyHits($key)
+    {
+        $hits = 0;
+        foreach ($this->adapters as $adapter) {
+            if ($adapter->isConnected()) {
+                foreach ($adapter->keys($key) as $k) {
+                    $hits ++;
                 }
             }
         }
 
-        // considering only the quorum
-        $finalLocks = array();
-        foreach ($locks as $l) {
-            if ($this->quorum->isApproved($l['count'])) {
-                $finalLocks[] = $l['lock'];
-            }
-        }
-
-        return $finalLocks;
+        return $hits;
     }
 
     public function canAcquireLock(LockInterface $lock)
@@ -149,6 +193,10 @@ class LockManager
 
     public function acquireLock(LockInterface $lock)
     {
+        if (count($this->adapters) == 0) {
+            return false;
+        }
+
         if ($this->hasLock($lock)) {
             return true;
         }
@@ -159,10 +207,7 @@ class LockManager
 
         $retries = $this->retryCount;
 
-        $key = $this
-            ->keyGenerator
-            ->generate($lock)
-        ;
+        $key = $this->generateKey($lock);
 
         do {
             $n = 0;
@@ -207,10 +252,7 @@ class LockManager
 
     public function releaseLock(LockInterface $lock)
     {
-        $key = $this
-            ->keyGenerator
-            ->generate($lock)
-        ;
+        $key = $this->generateKey($lock);
 
         $i = 0;
         foreach ($this->adapters as $adapter) {
