@@ -27,7 +27,7 @@ class PredisAdapter implements AdapterInterface
 
     public function del($key)
     {
-        return $this
+        return (bool) $this
             ->predis
             ->del($key)
         ;
@@ -35,7 +35,7 @@ class PredisAdapter implements AdapterInterface
 
     public function exists($key)
     {
-        return $this
+        return (bool) $this
             ->predis
             ->exists($key)
         ;

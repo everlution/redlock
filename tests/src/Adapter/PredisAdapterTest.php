@@ -148,6 +148,32 @@ class PredisAdapterTest extends \PHPUnit_Framework_TestCase
         );
     }
 
+    public function testDel()
+    {
+        $this->clearAll();
+
+        $this
+            ->adapter
+            ->set('resource1', 'value1')
+        ;
+
+        $this->assertTrue($this->adapter->del('resource1'));
+        $this->assertFalse($this->adapter->del('resource2'));
+    }
+
+    public function testExists()
+    {
+        $this->clearAll();
+
+        $this
+            ->adapter
+            ->set('resource1', 'value1')
+        ;
+
+        $this->assertTrue($this->adapter->exists('resource1'));
+        $this->assertFalse($this->adapter->exists('resource2'));
+    }
+
     public function tearDown()
     {
         parent::tearDown();
