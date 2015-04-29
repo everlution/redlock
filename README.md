@@ -1,22 +1,28 @@
 # Redlock
 
-**WARNING** this package is still on development.
-
-An implementation of the [Redlock] [1] algorithm.
-
-It is worth it to take a look at the wikipedia page for [distributed locking] [2].
+A PHP implementation of the [Redlock] [1] algorithm.
 
 ## Requirements
 
 * PHP >= 5.4
 * Redis
 
-## Adapters
+# Installation (using composer)
 
-This library is provided with two different adapters:
+You can find the library in packagist [here](https://packagist.org/packages/everlution/redlock).
 
-* [Predis] [3]
-* [PHP Redis extension] [4]
+
+```json
+{
+  "require": {
+    "everlution/redlock": "dev-master"
+  }
+}
+```
+
+# Documentation
+
+[Read the documentation for dev-master](https://github.com/everlution/redlock/wiki)
 
 ## Contributors
 

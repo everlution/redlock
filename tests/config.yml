@@ -1,3 +1,4 @@
+# Used in tests/src/Adapter/PredisAdapterTest.php
 adapter:
     predis:
         valid_redis:
@@ -10,9 +11,11 @@ adapter:
             port:    6384
             timeout: 1
             async:   true
+# Used in tests/src/Manager/LockManagerTest.php
+# Please specify at least one valid_redis_servers and on invalid_redis_servers
 manager:
     lock:
-        valid_redis_servers: # at least 1
+        valid_redis_servers:
             redis1:
                 host:    127.0.0.1
                 port:    6379
@@ -38,7 +41,7 @@ manager:
                 port:    6383
                 timeout: 0
                 async:   true
-        invalid_redis_servers: # at least 2
+        invalid_redis_servers:
             invalidRedis1:
                 host:    127.0.0.1
                 port:    6384
