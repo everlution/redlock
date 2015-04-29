@@ -148,7 +148,7 @@ class LockManager
             if (!$adapter->isConnected()) {
                 continue;
             }
-            foreach ($adapter->keys('*') as $key) {
+            foreach ($adapter->keys('*:*:*') as $key) {
                 $result[$key] = $this->countKeyHits($key);
             }
         }

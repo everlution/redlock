@@ -20,15 +20,15 @@ class DefaultKeyGenerator implements KeyGeneratorInterface
     {
         $chunks = explode(':', $key);
 
-        if (isset($key[0])) {
+        if (isset($chunks[0])) {
             $lock->setResourceName($chunks[0]);
         }
 
-        if (isset($key[1])) {
+        if (isset($chunks[1])) {
             $lock->setType($chunks[1]);
         }
 
-        if (isset($key[2])) {
+        if (isset($chunks[2])) {
             $lock->setToken($chunks[2]);
         }
 

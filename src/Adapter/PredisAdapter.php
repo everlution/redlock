@@ -3,6 +3,7 @@
 namespace Everlution\Redlock\Adapter;
 
 use Predis\Client as PredisClient;
+use Everlution\Redlock\Exception\Adapter\InvalidTtlException;
 
 class PredisAdapter implements AdapterInterface
 {
@@ -72,6 +73,10 @@ class PredisAdapter implements AdapterInterface
     {
         if (!$this->exists($key)) {
             return false;
+        }
+
+        if (!is_numeric($ttl)) {
+            throw new InvalidTtlException($ttl);
         }
 
         return $this
