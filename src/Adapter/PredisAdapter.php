@@ -70,7 +70,11 @@ class PredisAdapter implements AdapterInterface
 
     public function setTTL($key, $ttl)
     {
-        $this
+        if (!$this->exists($key)) {
+            return false;
+        }
+
+        return $this
             ->predis
             ->expire($key, $ttl)
         ;

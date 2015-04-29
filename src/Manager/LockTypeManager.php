@@ -97,7 +97,6 @@ class LockTypeManager
                 $allowedLocks[] = $t;
             }
         }
-
         return $allowedLocks;
     }
 }
