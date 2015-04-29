@@ -53,4 +53,17 @@ class DefaultKeyGeneratorTest extends \PHPUnit_Framework_TestCase
             $this->assertEquals($test['expected'], $generator->generate($lock));
         }
     }
+
+    public function testUngenerate()
+    {
+        $generator = new DefaultKeyGenerator();
+
+        $lock = new Lock();
+
+        $generator->ungenerate('resourceA:EX:nasidb20d98g', $lock);
+
+        $this->assertEquals('resourceA', $lock->getResourceName());
+        $this->assertEquals('EX', $lock->getType());
+        $this->assertEquals('nasidb20d98g', $lock->getToken());
+    }
 }
