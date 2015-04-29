@@ -7,6 +7,57 @@ use Everlution\Redlock\Exception\InvalidLockTypeException;
 
 class LockTypeManager
 {
+    private $truthMatrix = array(
+        LockType::NULL => array(
+            LockType::NULL              => true,
+            LockType::CONCURRENT_READ   => true,
+            LockType::CONCURRENT_WRITE  => true,
+            LockType::PROTECTED_READ    => true,
+            LockType::PROTECTED_WRITE   => true,
+            LockType::EXCLUSIVE         => true,
+        ),
+        LockType::CONCURRENT_READ => array(
+            LockType::NULL              => true,
+            LockType::CONCURRENT_READ   => true,
+            LockType::CONCURRENT_WRITE  => true,
+            LockType::PROTECTED_READ    => true,
+            LockType::PROTECTED_WRITE   => true,
+            LockType::EXCLUSIVE         => false,
+        ),
+        LockType::CONCURRENT_WRITE => array(
+            LockType::NULL              => true,
+            LockType::CONCURRENT_READ   => true,
+            LockType::CONCURRENT_WRITE  => true,
+            LockType::PROTECTED_READ    => false,
+            LockType::PROTECTED_WRITE   => false,
+            LockType::EXCLUSIVE         => false,
+        ),
+        LockType::PROTECTED_READ => array(
+            LockType::NULL              => true,
+            LockType::CONCURRENT_READ   => true,
+            LockType::CONCURRENT_WRITE  => false,
+            LockType::PROTECTED_READ    => true,
+            LockType::PROTECTED_WRITE   => false,
+            LockType::EXCLUSIVE         => false,
+        ),
+        LockType::PROTECTED_WRITE => array(
+            LockType::NULL              => true,
+            LockType::CONCURRENT_READ   => true,
+            LockType::CONCURRENT_WRITE  => false,
+            LockType::PROTECTED_READ    => false,
+            LockType::PROTECTED_WRITE   => false,
+            LockType::EXCLUSIVE         => false,
+        ),
+        LockType::EXCLUSIVE => array(
+            LockType::NULL              => true,
+            LockType::CONCURRENT_READ   => false,
+            LockType::CONCURRENT_WRITE  => false,
+            LockType::PROTECTED_READ    => false,
+            LockType::PROTECTED_WRITE   => false,
+            LockType::EXCLUSIVE         => false,
+        ),
+    );
+
     /**
      * getAll.
      *
@@ -16,14 +67,11 @@ class LockTypeManager
      */
     public function getAll()
     {
-        return array(
-            LockType::NULL,
-            LockType::PROTECTED_READ,
-            LockType::PROTECTED_WRITE,
-            LockType::CONCURRENT_READ,
-            LockType::CONCURRENT_WRITE,
-            LockType::EXCLUSIVE,
-        );
+        $locks = array();
+        foreach ($this->truthMatrix as $type => $value) {
+            $locks[] = $type;
+        }
+        return $locks;
     }
 
     /**
@@ -39,47 +87,17 @@ class LockTypeManager
      */
     public function getConcurrentAllowedLocks($type)
     {
-        switch ($type) {
-            case LockType::NULL:
-                return array(
-                    LockType::NULL,
-                    LockType::PROTECTED_READ,
-                    LockType::PROTECTED_WRITE,
-                    LockType::CONCURRENT_READ,
-                    LockType::CONCURRENT_WRITE,
-                    LockType::EXCLUSIVE,
-                );
-            case LockType::PROTECTED_READ:
-                return array(
-                    LockType::NULL,
-                    LockType::CONCURRENT_READ,
-                    LockType::PROTECTED_READ,
-                );
-            case LockType::PROTECTED_WRITE:
-                return array(
-                    LockType::NULL,
-                    LockType::CONCURRENT_READ,
-                );
-            case LockType::CONCURRENT_READ:
-                return array(
-                    LockType::NULL,
-                    LockType::PROTECTED_READ,
-                    LockType::PROTECTED_WRITE,
-                    LockType::CONCURRENT_READ,
-                    LockType::CONCURRENT_WRITE,
-                );
-            case LockType::CONCURRENT_WRITE:
-                return array(
-                    LockType::NULL,
-                    LockType::CONCURRENT_READ,
-                    LockType::CONCURRENT_WRITE,
-                );
-            case LockType::EXCLUSIVE:
-                return array(
-                    LockType::NULL,
-                );
-            default:
-                throw new InvalidLockTypeException($type);
+        if (!in_array($type, $this->getAll())) {
+            throw new InvalidLockTypeException($type);
         }
+
+        $allowedLocks = array();
+        foreach ($this->truthMatrix[$type] as $t => $isAllowed) {
+            if ($isAllowed) {
+                $allowedLocks[] = $t;
+            }
+        }
+
+        return $allowedLocks;
     }
 }
