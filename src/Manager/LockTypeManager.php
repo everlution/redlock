@@ -71,6 +71,7 @@ class LockTypeManager
         foreach ($this->truthMatrix as $type => $value) {
             $locks[] = $type;
         }
+
         return $locks;
     }
 
@@ -97,6 +98,7 @@ class LockTypeManager
                 $allowedLocks[] = $t;
             }
         }
+
         return $allowedLocks;
     }
 }
