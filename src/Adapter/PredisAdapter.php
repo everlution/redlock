@@ -29,6 +29,10 @@ class PredisAdapter implements AdapterInterface
 
     public function del($key)
     {
+        if (!$this->isConnected()) {
+            return false;
+        }
+
         return (bool) $this
             ->predis
             ->del($key)
@@ -37,6 +41,10 @@ class PredisAdapter implements AdapterInterface
 
     public function exists($key)
     {
+        if (!$this->isConnected()) {
+            return false;
+        }
+
         return (bool) $this
             ->predis
             ->exists($key)
@@ -53,6 +61,10 @@ class PredisAdapter implements AdapterInterface
 
     public function keys($pattern)
     {
+        if (!$this->isConnected()) {
+            return array();
+        }
+
         /*
          * As specified in the Redis doc it's not a good idea to use keys() in
          * production as it might become a performance killer. For this reason
@@ -67,19 +79,31 @@ class PredisAdapter implements AdapterInterface
         return $keys;
     }
 
-    public function set($key, $value)
+    public function set($key, $value, $ttl = null)
     {
-        $status = $this
-            ->predis
-            ->set($key, $value)
-        ;
+        if (!$this->isConnected()) {
+            return false;
+        }
+
+        $this->predis->multi();
+        $this->predis->set($key, $value);
+
+        if ($ttl) {
+            $this->predis->expire($key, $ttl);
+        }
+
+        $status = $this->predis->exec();
 
         /* @var $status \Predis\Response\Status */
-        return $status->getPayload() == 'OK';
+        return $status[0]->getPayload() == 'OK';
     }
 
     public function setTTL($key, $ttl)
     {
+        if (!$this->isConnected()) {
+            return false;
+        }
+
         if (!$this->exists($key)) {
             return false;
         }
@@ -96,6 +120,10 @@ class PredisAdapter implements AdapterInterface
 
     public function getTTL($key)
     {
+        if (!$this->isConnected()) {
+            return false;
+        }
+
         return $this
             ->predis
             ->ttl($key)

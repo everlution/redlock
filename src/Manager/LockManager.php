@@ -256,6 +256,33 @@ class LockManager
         return ($this->defaultLockValidityTime * self::CLOCK_DRIFT_FACTOR) + 2;
     }
 
+    private function acquireLockNoRetry(LockInterface $lock, $lockValidityTime)
+    {
+        $n = 0;
+
+        $key = $this->generateKey($lock);
+
+        /*
+         * It's really important for this loop to be as fast as possible
+         * as consists in the lock acquisition. The shorter it takes, the
+         * less chances we have to be in a situation in which multiple
+         * clients lock the same resource.
+         */
+        foreach ($this->adapters as $adapter) {
+            if ($adapter->set($key, $lock->getToken(), $lockValidityTime)) {
+                $n++;
+            }
+        }
+
+        if ($this->quorum->isApproved($n) && $lockValidityTime > 0) {
+            return true;
+        }
+
+        $this->releaseLock($lock);
+
+        return false;
+    }
+
     /**
      * acquireLock.
      *
@@ -275,27 +302,20 @@ class LockManager
             return false;
         }
 
-        $retries = $this->retryCount;
-
-        $key = $this->generateKey($lock);
-
         $lockValidityTime = $this->defaultLockValidityTime;
         if ($lock->getValidityTime()) {
             $lockValidityTime = $lock->getValidityTime();
         }
 
+        $retries = $this->retryCount;
+
         do {
-            $n = 0;
             $startTime = microtime(true) * 1000;
 
-            foreach ($this->adapters as $adapter) {
-                if (!$adapter->isConnected()) {
-                    continue;
-                }
-                if ($adapter->set($key, $lock->getToken())) {
-                    $adapter->setTTL($key, $lockValidityTime);
-                    $n++;
-                }
+            $isAcquired = $this->acquireLockNoRetry($lock, $lockValidityTime);
+
+            if ($isAcquired) {
+                return true;
             }
 
             /*
@@ -305,12 +325,6 @@ class LockManager
              */
             $drift = $this->getClockDrift();
             $lockValidityTime = $lockValidityTime - (microtime(true) * 1000 - $startTime) - $drift;
-
-            if ($this->quorum->isApproved($n) && $lockValidityTime > 0) {
-                return true;
-            } else {
-                $this->releaseLock($lock);
-            }
 
             $this->waitRandomTime();
 
@@ -374,16 +388,13 @@ class LockManager
     }
 
     /**
-     * releaseAllLocks.
+     * clearAllLocks.
      *
-     * Releases all the locks in every adapter.
+     * Clears every lock (even the not acquired ones) in every adapter.
      */
     public function clearAllLocks()
     {
         foreach ($this->adapters as $adapter) {
-            if (!$adapter->isConnected()) {
-                continue;
-            }
             foreach ($adapter->keys('*') as $key) {
                 $adapter->del($key);
             }

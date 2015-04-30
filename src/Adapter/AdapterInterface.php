@@ -23,7 +23,7 @@ interface AdapterInterface
      *
      * @return bool
      */
-    public function set($key, $value);
+    public function set($key, $value, $ttl = null);
 
     /**
      * del.

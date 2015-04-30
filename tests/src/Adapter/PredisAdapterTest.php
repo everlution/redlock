@@ -27,6 +27,10 @@ class PredisAdapterTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($adapter->set(null, ''));
         $this->assertTrue($adapter->set('', null));
         $this->assertTrue($adapter->set(null, null));
+
+        $this->assertEquals(-1, $adapter->getTTL('resourceA'));
+        $this->assertTrue($adapter->set('resourceA', 'valueA', 123));
+        $this->assertEquals(123, $adapter->getTTL('resourceA')); // quick enough to don't change the ttl
     }
 
     public function testDel()
