@@ -5,7 +5,7 @@ A PHP implementation of the [Redlock] [1] algorithm.
 ## Requirements
 
 * PHP >= 5.4
-* Redis
+* Redis >= 2.8 as using the [SCAN] [6] command
 
 # Installation (using composer)
 
@@ -34,3 +34,4 @@ You can find the library in packagist [here](https://packagist.org/packages/ever
 [3]: https://github.com/nrk/predis
 [4]: https://github.com/phpredis/phpredis
 [5]: https://github.com/michcald
+[6]: http://redis.io/commands/scan

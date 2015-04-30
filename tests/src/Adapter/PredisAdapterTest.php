@@ -119,7 +119,7 @@ class PredisAdapterTest extends \PHPUnit_Framework_TestCase
         $adapter->setTTL('resourceA', 3600);
         $this->assertEquals(3600, $adapter->getTTL('resourceA'));
 
-        $adapter->setTTL('resourceA', -1);
+        $adapter->set('resourceA', 'valueA');
         $this->assertEquals(-1, $adapter->getTTL('resourceA'));
     }
 
@@ -176,7 +176,8 @@ class PredisAdapterTest extends \PHPUnit_Framework_TestCase
                 'port'    => $config['port'],
                 'timeout' => $config['timeout'],
                 'async'   => $config['async'],
-            )
+            ),
+            array('profile' => '2.8')
         ));
 
         if ($valid) {
@@ -186,5 +187,15 @@ class PredisAdapterTest extends \PHPUnit_Framework_TestCase
         }
 
         return $adapter;
+    }
+
+    public function tearDown()
+    {
+        parent::tearDown();
+        $adapter = $this->newAdapter();
+
+        foreach ($adapter->keys('*') as $key) {
+            $adapter->del($key);
+        }
     }
 }

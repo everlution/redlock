@@ -26,6 +26,10 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
 
     public function testGetAdapters()
     {
+        $manager = $this->newManager(0, 0);
+        $this->assertCount(0, $manager->getAdapters(false));
+        $this->assertCount(0, $manager->getAdapters(true));
+
         // "n" valid
         $manager = $this->newManager(count($this->validAdapters), 0);
         $this->assertCount(count($this->validAdapters), $manager->getAdapters(false));
@@ -92,30 +96,47 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
 
     public function testGetKeysHits()
     {
+        $keyGenerator = new \Everlution\Redlock\KeyGenerator\DefaultKeyGenerator();
+
+        $locks = array(
+            new Lock('printer', LockType::NULL, 'dn87020w80df8gsad'),
+            new Lock('printer', LockType::PROTECTED_READ, 'dn87020w80df8gsad'),
+            new Lock('printer', LockType::CONCURRENT_READ, 'dn87020w80df8gsad'),
+        );
+
+        $keys = array();
+
+        foreach ($locks as $lock) {
+            $keys[$keyGenerator->generate($lock)] = $lock;
+        }
+
         $manager = $this->newManager(count($this->validAdapters), count($this->invalidAdapters));
 
-        $lock = new Lock('printer', LockType::NULL, 'dn87020w80df8gsad');
-        $this->assertTrue($manager->acquireLock($lock));
+        $hits = $manager->getKeysHits('printer:*:*');
+        $this->assertInternalType('array', $hits);
+        $this->assertCount(0, $hits);
 
-        $lock = new Lock('printer', LockType::PROTECTED_READ, 'dn87020w80df8gsad');
-        $this->assertTrue($manager->acquireLock($lock));
+        $i = 1;
+        foreach ($keys as $key => $lock) {
+            $manager->acquireLock($lock);
 
-        $lock = new Lock('printer', LockType::CONCURRENT_READ, 'dn87020w80df8gsad');
-        $this->assertTrue($manager->acquireLock($lock));
+            $hits = $manager->getKeysHits('printer:*:*');
+            $this->assertInternalType('array', $hits);
+            $this->assertCount($i, $hits);
 
-        $hits = $manager->getKeysHits($manager->generateKey($lock));
+            $this->assertContains($key, array_keys($keys));
 
-        foreach ($hits as $key => $count) {
-            $this->assertEquals(
-                count($this->validAdapters),
-                $count
-            );
+            $i++;
         }
     }
 
     public function testGetCurrentLocks()
     {
         $manager = $this->newManager(count($this->validAdapters), count($this->invalidAdapters));
+
+        $locks = $manager->getCurrentLocks('*:*:*');
+        $this->assertInternalType('array', $locks);
+        $this->assertCount(0, $locks);
 
         $lock1 = new Lock('printer', LockType::NULL, 'dn87020w80df8gsad');
         $this->assertTrue($manager->acquireLock($lock1));
@@ -126,7 +147,9 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
         $lock3 = new Lock('printer', LockType::CONCURRENT_READ, 'dn87020w80df8gsad');
         $this->assertTrue($manager->acquireLock($lock3));
 
-        $locks = $manager->getCurrentLocks();
+        $locks = $manager->getCurrentLocks('printer:*:*');
+        $this->assertInternalType('array', $locks);
+        $this->assertCount(3, $locks);
 
         foreach ($locks as $lock) {
             $this->assertInstanceOf('\Everlution\Redlock\Model\Lock', $lock);
@@ -143,75 +166,181 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
         }
     }
 
-    public function testEmpty()
+    public function testCanAcquireLock()
     {
-        $manager = $this->newManager(count($this->validAdapters));
+        $resource1 = 'resource1';
 
-        $this->assertCount(0, $manager->getCurrentLocks());
+        $token1 = 'iasubd2db22';
+        $token2 = 'd72kl2bdlka';
 
-        $lock = new Lock('ResourceA', LockType::EXCLUSIVE, 'aksbd8bdge2qod7g');
-        $this->assertFalse($manager->hasLock($lock));
-        $this->assertTrue($manager->canAcquireLock($lock));
+        $manager = $this->newManager(count($this->validAdapters), 0, 120);
+
+        $this->assertTrue(
+            $manager->canAcquireLock(
+                $lock = new Lock($resource1, LockType::NULL, $token1)
+            )
+        );
+        $manager->acquireLock($lock);
+
+        $this->assertTrue(
+            $manager->canAcquireLock(
+                $lock = new Lock($resource1, LockType::NULL, $token1)
+            )
+        );
+        $manager->acquireLock($lock);
+
+        $this->assertTrue(
+            $manager->canAcquireLock(
+                $lock = new Lock($resource1, LockType::EXCLUSIVE, $token1)
+            )
+        );
+        $manager->acquireLock($lock);
+
+        $this->assertTrue(
+            $manager->canAcquireLock(
+                $lock = new Lock($resource1, LockType::EXCLUSIVE, $token1)
+            )
+        );
+        $manager->acquireLock($lock);
+
+        $this->assertFalse(
+            $manager->canAcquireLock(
+                $lock = new Lock($resource1, LockType::CONCURRENT_WRITE, $token1)
+            )
+        );
+        $manager->acquireLock($lock);
+
+        $this->assertFalse(
+            $manager->canAcquireLock(
+                $lock = new Lock($resource1, LockType::EXCLUSIVE, $token2)
+            )
+        );
+        $manager->acquireLock($lock);
+
+        $resource2 = 'resource2';
+
+        $this->assertTrue(
+            $manager->canAcquireLock(
+                $lock = new Lock($resource2, LockType::EXCLUSIVE, $token1)
+            )
+        );
+        $manager->acquireLock($lock);
+
+        $this->assertFalse(
+            $manager->canAcquireLock(
+                $lock = new Lock($resource2, LockType::CONCURRENT_READ, $token1)
+            )
+        );
+        $manager->acquireLock($lock);
+
+        $this->assertFalse(
+            $manager->canAcquireLock(
+                $lock = new Lock($resource2, LockType::EXCLUSIVE, $token2)
+            )
+        );
+        $manager->acquireLock($lock);
     }
 
-    public function testAcquireRelease()
+    public function testHasLock()
     {
         $manager = $this->newManager(count($this->validAdapters));
 
-        $token1 = 'asidub2798dgdeefddsf';
-        $token2 = 'vophyouasbdyasdoausd';
+        $resource1 = 'resource1';
+        $token1 = 'token1';
 
-        $nlLock = new Lock('printer', LockType::NULL, $token1);
-        $cwLock = new Lock('printer', LockType::CONCURRENT_WRITE, $token1);
-        $exLock = new Lock('printer', LockType::EXCLUSIVE, $token2);
-        $crLock = new Lock('printer', LockType::CONCURRENT_READ, $token1);
+        $resource2 = 'resource2';
+        $token2 = 'token2';
 
-        $this->assertFalse($manager->hasLock($nlLock));
-        $this->assertTrue($manager->acquireLock($nlLock));
-        $this->assertTrue($manager->hasLock($nlLock));
+        $lock1 = new Lock($resource1, LockType::NULL, $token1);
 
-        $this->assertFalse($manager->hasLock($cwLock));
-        $this->assertTrue($manager->acquireLock($cwLock));
-        $this->assertTrue($manager->hasLock($cwLock));
+        $this->assertFalse($manager->hasLock($lock1));
+        $manager->acquireLock($lock1);
+        $this->assertTrue($manager->hasLock($lock1));
+        $manager->releaseLock($lock1);
+        $this->assertFalse($manager->hasLock($lock1));
+        $manager->acquireLock($lock1);
 
-        $this->assertFalse($manager->hasLock($exLock));
-        $this->assertFalse($manager->acquireLock($exLock));
-        $this->assertFalse($manager->hasLock($exLock));
+        $lock2 = new Lock($resource1, LockType::NULL, $token2);
 
-        $this->assertFalse($manager->hasLock($crLock));
-        $this->assertTrue($manager->acquireLock($crLock));
-        $this->assertTrue($manager->hasLock($crLock));
+        $this->assertFalse($manager->hasLock($lock2));
+        $manager->acquireLock($lock2);
+        $this->assertTrue($manager->hasLock($lock1));
+        $this->assertTrue($manager->hasLock($lock2));
 
-        $this->assertTrue($manager->hasLock($cwLock));
-        $this->assertTrue($manager->releaseLock($cwLock));
-        $this->assertFalse($manager->hasLock($cwLock));
+        $lock3 = new Lock($resource2, LockType::NULL, $token2);
 
-        $this->assertFalse($manager->hasLock($exLock));
-        $this->assertFalse($manager->acquireLock($exLock));
-        $this->assertFalse($manager->hasLock($exLock));
+        $manager->acquireLock($lock3);
+        $this->assertTrue($manager->hasLock($lock1));
+        $this->assertTrue($manager->hasLock($lock2));
+        $this->assertTrue($manager->hasLock($lock3));
 
-        $this->assertTrue($manager->hasLock($crLock));
-        $this->assertTrue($manager->releaseLock($crLock));
-        $this->assertFalse($manager->hasLock($crLock));
-
-        $this->assertFalse($manager->hasLock($exLock));
-        $this->assertTrue($manager->acquireLock($exLock));
-        $this->assertTrue($manager->hasLock($exLock));
-
-        $this->assertTrue($manager->hasLock($nlLock));
-        $this->assertTrue($manager->releaseLock($nlLock));
-        $this->assertFalse($manager->hasLock($nlLock));
+        $manager->releaseLock($lock2);
+        $this->assertTrue($manager->hasLock($lock1));
+        $this->assertFalse($manager->hasLock($lock2));
+        $this->assertTrue($manager->hasLock($lock3));
     }
 
-    public function testNull()
+    public function testAcquireLock()
     {
         $manager = $this->newManager(count($this->validAdapters));
 
-        $lock = new Lock('doc', LockType::NULL, 'd92hd982hd8dhw');
-        $this->assertTrue($manager->acquireLock($lock));
+        $resource1 = 'resource1';
+        $token1 = 'token1';
 
-        $lock = new Lock('doc', LockType::CONCURRENT_WRITE, 'noi987ghf28vd');
-        $this->assertTrue($manager->acquireLock($lock));
+        $resource2 = 'resource2';
+        $token2 = 'token2';
+
+        $lock1 = new Lock($resource1, LockType::NULL, $token1);
+
+        $this->assertTrue($manager->acquireLock($lock1));
+        $this->assertTrue($manager->acquireLock($lock1));
+        $this->assertTrue($manager->acquireLock($lock1));
+
+        $lock2 = new Lock($resource1, LockType::NULL, $token2);
+
+        $this->assertTrue($manager->acquireLock($lock2));
+    }
+
+    public function testReleaseLock()
+    {
+        $manager = $this->newManager(count($this->validAdapters));
+
+        $resource1 = 'resource1';
+        $token1 = 'token1';
+
+        $resource2 = 'resource2';
+        $token2 = 'token2';
+
+        $lock1 = new Lock($resource1, LockType::NULL, $token1);
+
+        $this->assertTrue($manager->acquireLock($lock1));
+        $this->assertTrue($manager->releaseLock($lock1));
+        $this->assertFalse($manager->releaseLock($lock1));
+    }
+
+    public function testReleaseAllLocks()
+    {
+        $manager = $this->newManager(count($this->validAdapters));
+
+        $resource1 = 'resource1';
+        $token1 = 'token1';
+
+        $resource2 = 'resource2';
+        $token2 = 'token2';
+
+        $manager->acquireLock(new Lock($resource1, LockType::NULL, $token1));
+        $manager->acquireLock(new Lock($resource1, LockType::NULL, $token1));
+        $manager->acquireLock(new Lock($resource1, LockType::NULL, $token2));
+        $manager->acquireLock(new Lock($resource2, LockType::NULL, $token1));
+        $manager->acquireLock(new Lock($resource2, LockType::EXCLUSIVE, $token1));
+
+        $this->assertCount(4, $manager->getCurrentLocks('*'));
+        $this->assertCount(4, $manager->getCurrentLocks('resource*'));
+
+        $manager->releaseAllLocks();
+
+        $this->assertCount(0, $manager->getCurrentLocks('*'));
+        $this->assertCount(0, $manager->getCurrentLocks('resource*'));
     }
 
     public function testLockExpired()
@@ -348,6 +477,7 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
         }
 
         $manager->releaseAllLocks();
+        $manager->clearAllLocks();
 
         return $manager;
     }

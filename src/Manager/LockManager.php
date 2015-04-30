@@ -81,6 +81,8 @@ class LockManager
     {
         $this->adapters[] = $adapter;
 
+        $this->quorum->setTotal(count($this->adapters));
+
         return $this;
     }
 
@@ -109,54 +111,6 @@ class LockManager
     }
 
     /**
-     * getCurrentLocks.
-     *
-     * Returns the current locks defined in redis.
-     *
-     * @return array[\Everlution\Redlock\Model\Lock]
-     */
-    public function getCurrentLocks()
-    {
-        $keysHits = $this->getKeysHits();
-
-        $locks = array();
-        foreach ($keysHits as $key => $hits) {
-            if ($this->quorum->isApproved($hits)) {
-                $locks[] = $this
-                    ->keyGenerator
-                    ->ungenerate($key, new Lock())
-                ;
-            }
-        }
-
-        return $locks;
-    }
-
-    /**
-     * getKeysHits.
-     *
-     * Generates a key=>value array having as keys all the keys in every
-     * adapter and as value the number of adapters in which the key has been
-     * found.
-     *
-     * @return array
-     */
-    public function getKeysHits()
-    {
-        $result = array();
-        foreach ($this->adapters as $adapter) {
-            if (!$adapter->isConnected()) {
-                continue;
-            }
-            foreach ($adapter->keys('*:*:*') as $key) {
-                $result[$key] = $this->countKeyHits($key);
-            }
-        }
-
-        return $result;
-    }
-
-    /**
      * countKeyHits.
      *
      * Counts the number of adapters containing the specified key.
@@ -180,6 +134,54 @@ class LockManager
     }
 
     /**
+     * getKeysHits.
+     *
+     * Generates a key => value array having as keys all the keys in every
+     * adapter and as value the number of adapters in which the key has been
+     * found.
+     *
+     * @return array
+     */
+    public function getKeysHits($pattern)
+    {
+        $result = array();
+        foreach ($this->adapters as $adapter) {
+            if (!$adapter->isConnected()) {
+                continue;
+            }
+            foreach ($adapter->keys($pattern) as $key) {
+                $result[$key] = $this->countKeyHits($key);
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * getCurrentLocks.
+     *
+     * Returns the current locks defined in redis.
+     *
+     * @return array[\Everlution\Redlock\Model\Lock]
+     */
+    public function getCurrentLocks($pattern)
+    {
+        $keysHits = $this->getKeysHits($pattern);
+
+        $locks = array();
+        foreach ($keysHits as $key => $hits) {
+            if ($this->quorum->isApproved($hits)) {
+                $locks[] = $this
+                    ->keyGenerator
+                    ->ungenerate($key, new Lock())
+                ;
+            }
+        }
+
+        return $locks;
+    }
+
+    /**
      * canAcquireLock.
      *
      * Verifies whether a lock can be acquired depending by the standing locks.
@@ -200,13 +202,21 @@ class LockManager
             throw new InvalidLockTypeException($lock->getType());
         }
 
+        $pattern = $this
+            ->keyGenerator
+            ->generate(
+                new Lock($lock->getResourceName(), '*', '*')
+            )
+        ;
+
         /* @var $currentLock \Everlution\Redlock\Model\Lock */
-        foreach ($this->getCurrentLocks() as $currentLock) {
+        foreach ($this->getCurrentLocks($pattern) as $currentLock) {
             $allowedLocks = $this
                 ->lockTypeManager
                 ->getConcurrentAllowedLocks($currentLock->getType())
             ;
             if (!in_array($lock->getType(), $allowedLocks)) {
+                #dump($allowedLocks);die;
                 return false;
             }
         }
@@ -226,17 +236,12 @@ class LockManager
      */
     public function hasLock(LockInterface $lock)
     {
-        /* @var $l \Everlution\Redlock\Model\Lock */
-        foreach ($this->getCurrentLocks() as $l) {
-            if ($l->getResourceName() == $lock->getResourceName()
-                && $l->getType() == $lock->getType()
-                && $l->getToken() == $lock->getToken()
-            ) {
-                return true;
-            }
-        }
+        $pattern = $this
+            ->keyGenerator
+            ->generate($lock)
+        ;
 
-        return false;
+        return count($this->getCurrentLocks($pattern)) == 1;
     }
 
     /**
@@ -363,8 +368,25 @@ class LockManager
      */
     public function releaseAllLocks()
     {
-        foreach ($this->getCurrentLocks() as $lock) {
+        foreach ($this->getCurrentLocks('*') as $lock) {
             $this->releaseLock($lock);
+        }
+    }
+
+    /**
+     * releaseAllLocks.
+     *
+     * Releases all the locks in every adapter.
+     */
+    public function clearAllLocks()
+    {
+        foreach ($this->adapters as $adapter) {
+            if (!$adapter->isConnected()) {
+                continue;
+            }
+            foreach ($adapter->keys('*') as $key) {
+                $adapter->del($key);
+            }
         }
     }
 }

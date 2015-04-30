@@ -6,10 +6,18 @@ use Everlution\Redlock\Model\LockInterface;
 
 class DefaultKeyGenerator implements KeyGeneratorInterface
 {
+    private $prefix;
+
+    public function __construct($prefix = null)
+    {
+        $this->prefix = $prefix;
+    }
+
     public function generate(LockInterface $lock)
     {
         return sprintf(
-            '%s:%s:%s',
+            '%s%s:%s:%s',
+            $this->prefix ? $this->prefix : '',
             $lock->getResourceName(),
             $lock->getType(),
             $lock->getToken()

@@ -3,6 +3,7 @@
 namespace Everlution\Redlock\Adapter;
 
 use Predis\Client as PredisClient;
+use Predis\Collection\Iterator;
 use Everlution\Redlock\Exception\Adapter\InvalidTtlException;
 
 class PredisAdapter implements AdapterInterface
@@ -52,10 +53,18 @@ class PredisAdapter implements AdapterInterface
 
     public function keys($pattern)
     {
-        return $this
-            ->predis
-            ->keys($pattern)
-        ;
+        /*
+         * As specified in the Redis doc it's not a good idea to use keys() in
+         * production as it might become a performance killer. For this reason
+         * we are using SCAN() with the MATCH() option.
+         */
+
+        $keys = array();
+        foreach (new Iterator\Keyspace($this->predis, $pattern) as $key) {
+            $keys[] = $key;
+        }
+
+        return $keys;
     }
 
     public function set($key, $value)
@@ -81,7 +90,7 @@ class PredisAdapter implements AdapterInterface
 
         return $this
             ->predis
-            ->expire($key, $ttl)
+            ->expire($key, (int) $ttl)
         ;
     }
 
