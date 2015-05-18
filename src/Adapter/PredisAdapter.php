@@ -85,17 +85,14 @@ class PredisAdapter implements AdapterInterface
             return false;
         }
 
-        $this->predis->multi();
-        $this->predis->set($key, $value);
+        $status = $this->predis->set($key, $value);
 
-        if ($ttl) {
+        if ($status->getPayload() == 'OK' && $ttl) {
             $this->predis->expire($key, $ttl);
         }
 
-        $status = $this->predis->exec();
-
         /* @var $status \Predis\Response\Status */
-        return $status[0]->getPayload() == 'OK';
+        return $status->getPayload() == 'OK';
     }
 
     public function setTTL($key, $ttl)
