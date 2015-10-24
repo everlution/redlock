@@ -4,12 +4,11 @@ use Symfony\Component\Yaml\Yaml;
 use Everlution\Redlock\Manager\LockManager;
 use Everlution\Redlock\Quorum\HalfPlusOneQuorum;
 use Everlution\Redlock\KeyGenerator\DefaultKeyGenerator;
-use Everlution\Redlock\Adapter\PredisAdapter;
 use Everlution\Redlock\Manager\LockTypeManager;
 use Everlution\Redlock\Model\Lock;
 use Everlution\Redlock\Model\LockType;
 
-class LockManagerTest extends \PHPUnit_Framework_TestCase
+abstract class LockManagerTest extends \PHPUnit_Framework_TestCase
 {
     private $validAdapters;
 
@@ -441,16 +440,7 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
             $count--;
 
             $manager
-                ->addAdapter(
-                    new PredisAdapter(
-                        new \Predis\Client(array(
-                            'host'    => $value['host'],
-                            'port'    => $value['port'],
-                            'timeout' => $value['timeout'],
-                            'async'   => $value['async'],
-                        ))
-                    )
-                )
+                ->addAdapter($this->getValidAdapter($value))
             ;
         }
 
@@ -466,15 +456,7 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
             $count--;
 
             $manager
-                ->addAdapter(
-                    new PredisAdapter(
-                        new \Predis\Client(array(
-                            'host'    => $value['host'],
-                            'port'    => $value['port'],
-                            'timeout' => $value['timeout'],
-                        ))
-                    )
-                )
+                ->addAdapter($this->getInvalidAdapter($value))
             ;
         }
 
@@ -483,4 +465,8 @@ class LockManagerTest extends \PHPUnit_Framework_TestCase
 
         return $manager;
     }
+
+    abstract public function getValidAdapter(array $config);
+
+    abstract public function getInvalidAdapter(array $config);
 }
